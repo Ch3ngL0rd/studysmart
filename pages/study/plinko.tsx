@@ -39,6 +39,20 @@ export const MatterStepOne = (props: CanvasProps) => {
     })
   }
 
+  function floor(x: number, y: number, width: number, height: number, score : number) {
+    // attach score to rectangle
+    const flr = Matter.Bodies.rectangle(x, y, width, height, {
+      isStatic: true,
+      label: 'floor',
+      render: {
+        fillStyle: 'green'
+      }
+    })
+
+    flr.score = score;
+    return flr;
+  }
+
   function lightPeg(event: Matter.IEventCollision<Matter.Engine>) {
     event.pairs.filter((pair: Matter.Pair) => pair.bodyA.label === 'peg')
       .forEach((pair: Matter.Pair) => {
@@ -46,9 +60,18 @@ export const MatterStepOne = (props: CanvasProps) => {
       });
   }
 
+  function removeBead(event: Matter.IEventCollision<Matter.Engine>) {
+    event.pairs
+      .filter((pair: Matter.Pair) => pair.bodyA.label === 'floor')
+      .forEach((pair: Matter.Pair) => {
+        console.log(pair.bodyA.score)
+        Matter.World.remove(engineRef.current!.world, pair.bodyB);
+      });
+  }
+
   function dropBead() {
     if (engineRef.current === null) return;
-    let bead = Matter.Bodies.circle(540 + Math.random() * 50 - 25, 10, 10, {
+    let bead = Matter.Bodies.circle(540 + Math.random() * 40 - 20, 10, 10, {
       restitution: 0.7,
       label: 'bead',
       render: {
@@ -102,9 +125,11 @@ export const MatterStepOne = (props: CanvasProps) => {
       wall(1075, 360, 10, 720),
     ]);
 
-    for (let x = 0; x < 1080; x += 72) {
-      let divider = wall(x, 720, 10, 200);
+    for (let x = 0; x < 15; x += 1) {
+      let divider = wall(x * 72, 720, 10, 200);
+      let bucket_floor = floor(x * 72 + 36 + 10 / 2, 710, 72, 10, x);
       Matter.World.add(engine.world, divider);
+      Matter.World.add(engine.world, bucket_floor);
     }
 
     // creates a pyramid of dots seperated by 80 pixels distance veritcla and horizontal
@@ -116,9 +141,11 @@ export const MatterStepOne = (props: CanvasProps) => {
       }
     }
 
-    Matter.Events.on(engine, "collisionStart", lightPeg);
+    // adds colisions between beads and floor
+    // removes beads when they collie with floor
 
-    // removes collisions between beads
+    Matter.Events.on(engine, "collisionStart", lightPeg);
+    Matter.Events.on(engine, "collisionStart", removeBead);
 
     Matter.Runner.run(engine);
     Render.run(render);
